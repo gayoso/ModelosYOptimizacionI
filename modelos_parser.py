@@ -197,13 +197,13 @@ def resolver_datos2():
 def resolver_datos3():
 	prendidas, no_prendidas, restricciones_restantes = heuristica_greedy("datos3.cnf")
 	print "RESTRICCIONES_RESTANTES"
-	print sorted(restricciones_restantes.keys())
+	print len(sorted(restricciones_restantes.keys()))
 	print
 	print "VARIABLES PRENDIDAS"
-	print sorted(prendidas)
+	print len(sorted(prendidas))
 	print
 	print "VARIABLES NO PRENDIDAS"
-	print sorted(no_prendidas.keys())
+	print len(sorted(no_prendidas.keys()))
 	print
 
 def resolver_datos4():
