@@ -81,7 +81,9 @@ def parse_cnf(arch_path):
 	# parseo linea 'p cnf 4 3'
 	line_parsed = line.split()
 	cant_variables = line_parsed[2]
+	padding_variables = len(cant_variables)
 	cant_restricciones = line_parsed[3]
+	padding_restricciones = len(cant_restricciones)
 	# parseo restricciones y variables
 	restricciones = {}
 	restriccion = {}
@@ -92,19 +94,126 @@ def parse_cnf(arch_path):
 		line_parsed = line.split()
 		for elem in line_parsed:
 			if int(elem) == 0:
-				restricciones["Y"+str(i)] = restriccion
+				restricciones["Y"+str(i).rjust(padding_restricciones, "0")] = restriccion
 				for variable in restriccion.keys():
 					if not variable in variables:
 						variables[variable] = {}
-					variables[variable]["Y"+str(i)] = ""
+					variables[variable]["Y"+str(i).rjust(padding_restricciones, "0")] = ""
 				restriccion = {}
 			if int(elem) < 0:
-				restriccion["!X"+str(abs(int(elem)))] = ""
+				restriccion["X"+str(abs(int(elem))).rjust(padding_variables, "0")+"!"] = ""
 			if int(elem) > 0:
-				restriccion[("X"+str(elem))] = ""
+				restriccion["X"+str(elem).rjust(padding_variables, "0")] = ""
 		line = file.readline()
 		i += 1
 		
 	file.close()
 
 	return restricciones, variables
+
+def heuristica_gabo(restricciones, variables):
+	# calculo para cada restriccion un peso proporcional a cuantas variables la pueden prender
+	# cuantas mas variables la puedan prender, menor su peso
+	pesos_restricciones = {}
+	for restriccion in restricciones:
+		if len(restricciones[restriccion]) > 0:
+			pesos_restricciones[restriccion] = len(variables) / len(restricciones[restriccion])
+	# calculo el peso de una variable como la suma de los pesos de las restricciones en las que aparece
+	pesos_variables = {}
+	for variable in variables:
+		pesos_variables[variable] = 0
+		for restriccion in variables[variable]:
+			pesos_variables[variable] += pesos_restricciones[restriccion]
+	# determino borrar la variable con mas peso
+	variable_mas_pesada = sorted(pesos_variables, key=lambda k: pesos_variables[k], reverse=True)[0]
+	return variable_mas_pesada
+
+def heuristica_greedy(arch_path):
+	# restricciones: 	diccionario de restricciones a variables que aparecen en esa restriccion
+	# variables:		diccionario de variables a restricciones en las que aparece esa variable
+	restricciones, variables = parse_cnf(arch_path)
+
+	# mientras queden variables sin determinar o restricciones sin cumplir, sigo iterando
+	prendidas = []
+	while len(restricciones) != 0 and len(variables) != 0:
+		##### ACA IRIA UN ALGORITMO PARA DETERMINAR LA SIGUIENTE VARIABLE A PRENDER
+
+		# determino borrar la variable con mas peso
+		variable_a_prender = heuristica_gabo(restricciones, variables)
+		
+		##### ACA SIMPLEMENTE MANTENGO LOS DICCIONARIOS, BORRANDO LA VARIABLE Y RESTRICCIONES ASOCIADAS
+
+		# prendo la variable 
+		# (queda determinado el valor tanto de la variable como de su complemento negado)
+		prendidas.append(variable_a_prender)
+
+		# armo complemento
+		complemento = ""
+		if variable_a_prender[len(variable_a_prender)-1] == '!':
+			complemento = variable_a_prender[:len(variable_a_prender)-1]
+		else:
+			complemento = variable_a_prender+"!"
+
+		# borro las restricciones que prende la variable
+		for restriccion in variables[variable_a_prender].keys():
+			borrar_restriccion(restricciones, variables, restriccion)
+
+		# borro la variable
+		borrar_variable(restricciones, variables, variable_a_prender)
+
+		# borro el complemento
+		borrar_variable(restricciones, variables, complemento)
+	
+	# si quedaron variables sin prender, las guardo aca para devolver
+	no_prendidas = variables
+
+	# si quedaron restricciones sin cumplir, las guardo aca para devolver
+	restricciones_restantes = restricciones
+
+	return prendidas, no_prendidas, restricciones_restantes
+
+def borrar_variable(restricciones, variables, variable):
+	for restriccion in variables[variable]:
+		restricciones[restriccion].pop(variable)
+	variables.pop(variable)
+
+def borrar_restriccion(restricciones, variables, restriccion):
+	for variable in restricciones[restriccion]:
+		variables[variable].pop(restriccion)
+	restricciones.pop(restriccion)
+
+def resolver_datos2():
+	prendidas, no_prendidas, restricciones_restantes = heuristica_greedy("datos2.cnf")
+	print "RESTRICCIONES_RESTANTES"
+	print sorted(restricciones_restantes.keys())
+	print
+	print "VARIABLES PRENDIDAS"
+	print sorted(prendidas)
+	print
+	print "VARIABLES NO PRENDIDAS"
+	print sorted(no_prendidas.keys())
+	print
+
+def resolver_datos3():
+	prendidas, no_prendidas, restricciones_restantes = heuristica_greedy("datos3.cnf")
+	print "RESTRICCIONES_RESTANTES"
+	print sorted(restricciones_restantes.keys())
+	print
+	print "VARIABLES PRENDIDAS"
+	print sorted(prendidas)
+	print
+	print "VARIABLES NO PRENDIDAS"
+	print sorted(no_prendidas.keys())
+	print
+
+def resolver_datos4():
+	prendidas, no_prendidas, restricciones_restantes = heuristica_greedy("datos4.cnf")
+	print "RESTRICCIONES_RESTANTES"
+	print sorted(restricciones_restantes.keys())
+	print
+	print "VARIABLES PRENDIDAS"
+	print sorted(prendidas)
+	print
+	print "VARIABLES NO PRENDIDAS"
+	print sorted(no_prendidas.keys())
+	print
